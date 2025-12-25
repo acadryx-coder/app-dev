@@ -2,46 +2,35 @@
 'use client'
 
 import { useState } from 'react'
+import ChatInput from './components/ChatInput'
+import ChatWindow from './components/ChatWindow'
+
+type Message = {
+  role: 'user' | 'ai'
+  message: string
+}
 
 export default function AIPage() {
-  const [input, setInput] = useState('')
-  const [chat, setChat] = useState<{role: string, message: string}[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
 
-  const handleSend = () => {
-    if (!input) return
-    const userMessage = { role: 'user', message: input }
-    setChat(prev => [...prev, userMessage])
-    
-    // Simulated AI response for now
-    const aiMessage = { role: 'ai', message: `AI Team Response: "${input}" received and noted.` }
-    setChat(prev => [...prev, aiMessage])
-    
-    setInput('')
+  const handleSend = async (msg: string) => {
+    const userMessage: Message = { role: 'user', message: msg }
+    setMessages(prev => [...prev, userMessage])
+
+    const res = await fetch('/ai/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg }),
+    })
+    const data = await res.json()
+    const aiMessage: Message = { role: 'ai', message: data.response }
+    setMessages(prev => [...prev, aiMessage])
   }
 
   return (
-    <div className="space-y-4">
-      <div className="border rounded p-4 h-96 overflow-y-auto bg-gray-50">
-        {chat.map((c, idx) => (
-          <div key={idx} className={c.role === 'user' ? 'text-right' : 'text-left'}>
-            <p className={c.role === 'user' ? 'inline-block bg-blue-600 text-white px-3 py-1 rounded' : 'inline-block bg-gray-200 text-gray-900 px-3 py-1 rounded'}>
-              {c.message}
-            </p>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Ask your AI team..."
-          className="flex-1 border rounded px-3 py-2"
-        />
-        <button onClick={handleSend} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-          Send
-        </button>
-      </div>
+    <div className="space-y-4 max-w-4xl mx-auto mt-8">
+      <ChatWindow messages={messages} />
+      <ChatInput onSend={handleSend} />
     </div>
   )
       }
